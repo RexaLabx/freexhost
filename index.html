@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>FreeX HoST · Deploy static sites to GitHub Pages</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0B0D0F;
+            --panel: #131619;
+            --panel-raised: #171B1F;
+            --border: #22262B;
+            --border-hover: #34393F;
+            --text: #EDEFF1;
+            --text-dim: #8B929A;
+            --text-faint: #565C64;
+            --accent: #3ECF8E;
+            --accent-dim: #1F5C42;
+            --accent-glow: rgba(62, 207, 142, 0.15);
+            --error: #F0554A;
+            --error-dim: rgba(240, 85, 74, 0.12);
+            --warn: #E8A33D;
+            --warn-dim: rgba(232, 163, 61, 0.12);
+            --info: #4E9BF0;
+            --info-dim: rgba(78, 155, 240, 0.12);
+            --radius: 10px;
+            --radius-lg: 14px;
+            --font-ui: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        html { color-scheme: dark; }
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg);
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 64px 64px;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse 900px 600px at 50% -10%, rgba(62,207,142,0.06), transparent 60%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* ===================== Header ===================== */
+        .fx-header {
+            background: rgba(11, 13, 15, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            opacity: 0;
+            animation: dropIn 0.5s ease forwards;
+        }
+
+        @keyframes dropIn {
+            from { opacity: 0; transform: translateY(-16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #06120D;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .logo-text {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .logo-text .dim { color: var(--text-dim); font-weight: 500; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            animation: dotPulse 2s infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .history-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 7px 13px;
+            border-radius: var(--radius);
+            font-family: var(--font-ui);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .history-toggle-btn:hover {
+            border-color: var(--border-hover);
+            color: var(--text);
+        }
+
+        .history-count {
+            background: var(--accent-glow);
+            color: var(--accent);
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 20px;
+        }
+
+        /* ===================== Hero ===================== */
+        .fx-hero {
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 56px 28px 12px;
+            opacity: 0;
+            animation: fadeUp 0.6s ease 0.1s forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .hero-eyebrow::before {
+            content: '';
+            width: 16px;
+            height: 1px;
+            background: var(--accent);
+        }
+
+        .fx-hero h1 {
+            font-size: clamp(1.7rem, 4vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            max-width: 640px;
+        }
+
+        .fx-hero p {
+            color: var(--text-dim);
+            margin-top: 12px;
+            font-size: 0.95rem;
+            max-width: 540px;
+        }
+
+        /* ===================== Layout / Steps ===================== */
+        .fx-layout {
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 32px 28px 60px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .fx-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: border-color 0.25s ease, transform 0.25s ease;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: panelIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .fx-panel:nth-of-type(1) { animation-delay: 0.15s; }
+        .fx-panel:nth-of-type(2) { animation-delay: 0.25s; }
+        .fx-panel.fx-panel-wide { grid-column: 1 / -1; animation-delay: 0.35s; }
+
+        @keyframes panelIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fx-panel:hover {
+            border-color: var(--border-hover);
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-raised);
+        }
+
+        .step-num {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent);
+            background: var(--accent-glow);
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        .panel-sub {
+            font-size: 0.75rem;
+            color: var(--text-faint);
+            margin-left: auto;
+            font-family: var(--font-mono);
+        }
+
+        .panel-body {
+            padding: 20px;
+        }
+
+        /* ===================== Form elements ===================== */
+        .field-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .fx-input {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .fx-input::placeholder { color: var(--text-faint); font-family: var(--font-ui); }
+
+        .fx-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn-fx {
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px 18px;
+            color: #06140D;
+            font-weight: 600;
+            font-family: var(--font-ui);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            font-size: 0.88rem;
+        }
+
+        .btn-fx:hover:not(:disabled) {
+            background: #4ee39c;
+            box-shadow: 0 6px 18px rgba(62,207,142,0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-fx:active:not(:disabled) { transform: translateY(0); }
+
+        .btn-fx:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .btn-fx-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-fx-secondary:hover:not(:disabled) {
+            background: var(--panel-raised);
+            border-color: var(--border-hover);
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* ===================== Upload zone ===================== */
+        .upload-zone-fx {
+            border: 1.5px dashed var(--border);
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 34px 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .upload-zone-fx:hover, .upload-zone-fx.drag-over {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .upload-zone-fx i { color: var(--text-faint); font-size: 1.8rem; margin-bottom: 10px; transition: color 0.2s; }
+        .upload-zone-fx:hover i { color: var(--accent); }
+
+        .upload-zone-fx strong { font-weight: 600; font-size: 0.88rem; }
+        .upload-zone-fx .hint { font-size: 0.72rem; color: var(--text-faint); margin-top: 5px; font-family: var(--font-mono); }
+
+        /* ===================== Status / log lines ===================== */
+        .status-card {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-family: var(--font-mono);
+            animation: lineIn 0.25s ease;
+            word-break: break-word;
+        }
+
+        @keyframes lineIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-card i { margin-top: 2px; flex-shrink: 0; }
+
+        .success { background: var(--accent-glow); color: var(--accent); }
+        .error { background: var(--error-dim); color: var(--error); }
+        .info { background: var(--info-dim); color: var(--info); }
+
+        /* ===================== Deploy terminal (signature element) ===================== */
+        .fx-terminal {
+            background: #060707;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            min-height: 168px;
+            max-height: 260px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .fx-terminal::-webkit-scrollbar { width: 6px; }
+        .fx-terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .term-line {
+            display: flex;
+            gap: 9px;
+            opacity: 0;
+            animation: termIn 0.3s ease forwards;
+            line-height: 1.6;
+        }
+
+        @keyframes termIn {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .term-prefix { color: var(--text-faint); flex-shrink: 0; user-select: none; }
+        .term-prefix.ok { color: var(--accent); }
+        .term-prefix.err { color: var(--error); }
+        .term-prefix.warn { color: var(--warn); }
+        .term-text { color: var(--text-dim); word-break: break-all; }
+        .term-text.bright { color: var(--text); }
+        .term-text a { color: var(--accent); }
+
+        .term-empty {
+            color: var(--text-faint);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .term-cursor {
+            display: inline-block;
+            width: 7px;
+            height: 14px;
+            background: var(--accent);
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* ===================== Progress ===================== */
+        .progress-bar-fx {
+            height: 3px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0 2px;
+        }
+
+        .progress-fill-fx {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.35s ease;
+        }
+
+        /* ===================== Live preview ===================== */
+        .preview-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 14px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: none;
+            background: #fff;
+            display: block;
+        }
+
+        .preview-empty {
+            text-align: center;
+            padding: 46px 20px;
+            color: var(--text-faint);
+        }
+
+        .preview-empty i { font-size: 1.7rem; margin-bottom: 10px; display: block; }
+        .preview-empty p { font-size: 0.82rem; }
+
+        .link-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .link-url {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            word-break: break-all;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            transition: border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ===================== SEO toggle row ===================== */
+        .seo-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-top: 14px;
+            cursor: pointer;
+        }
+
+        .seo-row input[type="checkbox"] {
+            margin-top: 3px;
+            accent-color: var(--accent);
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .seo-row-text strong { font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 2px; }
+        .seo-row-text span { font-size: 0.72rem; color: var(--text-faint); line-height: 1.4; }
+
+        /* ===================== History panel ===================== */
+        .history-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-clear-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-faint);
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color 0.2s;
+        }
+
+        .history-clear-btn:hover { color: var(--error); }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 0.82rem;
+        }
+
+        .history-empty i { font-size: 1.6rem; margin-bottom: 10px; display: block; }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 20px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .history-item:last-child { border-bottom: none; }
+        .history-item:hover { background: var(--panel-raised); }
+
+        .history-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .history-info { min-width: 0; flex: 1; }
+
+        .history-repo {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-meta {
+            font-size: 0.7rem;
+            color: var(--text-faint);
+            margin-top: 2px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        /* ===================== Footer ===================== */
+        .fx-footer {
+            text-align: center;
+            padding: 22px 20px 34px;
+            font-size: 0.75rem;
+            color: var(--text-faint);
+            border-top: 1px solid var(--border);
+            font-family: var(--font-mono);
+        }
+
+        .fx-footer i { color: var(--accent); margin-right: 5px; }
+
+        /* ===================== Responsive ===================== */
+        @media (max-width: 860px) {
+            .fx-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .fx-header { padding: 13px 16px; }
+            .logo-text { font-size: 0.95rem; }
+            .status-pill span:not(.status-dot) { display: none; }
+            .fx-hero { padding: 34px 16px 6px; }
+            .fx-layout { padding: 22px 16px 44px; gap: 16px; }
+            .panel-body { padding: 16px; }
+            .panel-head { padding: 13px 16px; }
+            .history-toggle-btn span { display: none; }
+            .history-toggle-btn { padding: 8px 10px; }
+            .link-row { flex-direction: column; align-items: flex-start; }
+            iframe { height: 220px; }
+        }
+
+        /* ===================== Toast ===================== */
+        .fx-toast {
+            position: fixed;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--panel-raised);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .fx-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .fx-toast i { color: var(--accent); }
+
+        /* ===================== History drawer backdrop ===================== */
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: min(420px, 100%);
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            z-index: 201;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawer.show { transform: translateX(0); }
+
+        .drawer-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .drawer-head h2 { font-size: 1rem; font-weight: 700; }
+
+        .drawer-close {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-close:hover { border-color: var(--border-hover); color: var(--text); }
+
+        .drawer-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header class="fx-header">
+    <div class="logo-area">
+        <div class="logo-mark"><i class="fas fa-bolt"></i></div>
+        <div class="logo-text">FreeX <span class="dim">HoST</span></div>
+    </div>
+    <div class="header-right">
+        <button class="history-toggle-btn" id="fxHistoryToggle">
+            <i class="fas fa-clock-rotate-left"></i>
+            <span>History</span>
+            <span class="history-count" id="fxHistoryCount">0</span>
+        </button>
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            <span id="timeDisplay">--:--</span>
+        </div>
+    </div>
+</header>
+
+<section class="fx-hero">
+    <div class="hero-eyebrow"><i class="fas fa-terminal"></i> STATIC SITE DEPLOYER</div>
+    <h1>Push an HTML file. Get a live URL. No config.</h1>
+    <p>FreeX HoST turns your GitHub token into a one-click pipeline: connect, drop a file, deploy to GitHub Pages — and it remembers every site you've shipped.</p>
+</section>
+
+<div class="fx-layout">
+
+    <!-- Panel 1: GitHub Connect -->
+    <div class="fx-panel">
+        <div class="panel-head">
+            <div class="step-num">01</div>
+            <div class="panel-title">Connect GitHub</div>
+            <div class="panel-sub">auth</div>
+        </div>
+        <div class="panel-body">
+            <label class="field-label" for="fnxToken">Personal access token</label>
+            <input type="password" id="fnxToken" class="fx-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <label class="field-label" for="fnxRepo">Repository name</label>
+            <input type="text" id="fnxRepo" class="fx-input" placeholder="my-project">
+            <button id="fnxSetupBtn" class="btn-fx"><i class="fas fa-plug"></i> Auto init & prepare</button>
+            <div id="fnxSetupStatus" class="status-card info"><i class="fas fa-info-circle"></i> Enter token + repo name, then run setup.</div>
+        </div>
+    </div>
+
+    <!-- Panel 2: Upload -->
+    <div class="fx-panel">
+        <div class="panel-head">
+            <div class="step-num">02</div>
+            <div class="panel-title">Select file</div>
+            <div class="panel-sub">.html</div>
+        </div>
+        <div class="panel-body">
+            <div id="fnxDropZone" class="upload-zone-fx">
+                <i class="fas fa-file-code"></i>
+                <div><strong>Drag & drop</strong> or click to browse</div>
+                <div class="hint">.html / .htm only</div>
+                <input type="file" id="fnxFileInput" accept=".html,.htm" style="display: none;">
+            </div>
+            <div id="fnxUploadStatus" class="status-card" style="display:none;"></div>
+
+            <label class="seo-row" for="fnxSeoToggle">
+                <input type="checkbox" id="fnxSeoToggle" checked>
+                <div class="seo-row-text">
+                    <strong>Make it discoverable on Google</strong>
+                    <span>Injects title, meta description, and Open Graph tags so search engines can index your deployed page.</span>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Panel 3: Deploy (wide, terminal + preview) -->
+    <div class="fx-panel fx-panel-wide">
+        <div class="panel-head">
+            <div class="step-num">03</div>
+            <div class="panel-title">Deploy</div>
+            <div class="panel-sub" id="deployPanelSub">idle</div>
+        </div>
+        <div class="panel-body">
+            <button id="fnxDeployBtn" class="btn-fx"><i class="fab fa-github"></i> Deploy & go live</button>
+            <div class="progress-bar-fx" id="fnxProgressBar" style="display: none;">
+                <div class="progress-fill-fx" id="fnxProgressFill"></div>
+            </div>
+
+            <div class="fx-terminal" id="fnxTerminal">
+                <div class="term-empty"><i class="fas fa-angle-right"></i> waiting for deploy<span class="term-cursor"></span></div>
+            </div>
+
+            <div id="fnxLinks"></div>
+
+            <div id="fnxPreview">
+                <div class="preview-box">
+                    <div class="preview-empty">
+                        <i class="fas fa-window-restore"></i>
+                        <p>Your live site preview will appear here after deploy.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="fx-footer">
+    <i class="fas fa-shield-halved"></i> FreeX HoST — zero config, just token + repo. Auto Pages + Deploy.
+</div>
+
+<!-- History drawer -->
+<div class="drawer-backdrop" id="fxDrawerBackdrop"></div>
+<div class="drawer" id="fxDrawer">
+    <div class="drawer-head">
+        <div class="history-header-row" style="width:100%;">
+            <h2>Deploy history</h2>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="history-clear-btn" id="fxClearHistory">Clear all</button>
+                <button class="drawer-close" id="fxDrawerClose"><i class="fas fa-xmark"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="drawer-body">
+        <div class="history-list" id="fxHistoryList">
+            <div class="history-empty">
+                <i class="fas fa-inbox"></i>
+                Nothing deployed yet. Your hosted sites will show up here.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="fx-toast" id="fxToast"><i class="fas fa-check"></i> <span id="fxToastMsg"></span></div>
+
+<script>
+    // ================= FreeX HoST STATE =================
+    let fnxConfig = { token: '', username: '', repoName: '' };
+    let selectedFile = null;
+
+    // DOM refs
+    const tokenInp = document.getElementById('fnxToken');
+    const repoInp = document.getElementById('fnxRepo');
+    const setupBtn = document.getElementById('fnxSetupBtn');
+    const setupStatus = document.getElementById('fnxSetupStatus');
+    const dropZone = document.getElementById('fnxDropZone');
+    const fileInput = document.getElementById('fnxFileInput');
+    const deployBtn = document.getElementById('fnxDeployBtn');
+    const uploadStatusDiv = document.getElementById('fnxUploadStatus');
+    const linksDiv = document.getElementById('fnxLinks');
+    const previewDiv = document.getElementById('fnxPreview');
+    const progressBar = document.getElementById('fnxProgressBar');
+    const progressFill = document.getElementById('fnxProgressFill');
+    const terminal = document.getElementById('fnxTerminal');
+    const deployPanelSub = document.getElementById('deployPanelSub');
+    const seoToggle = document.getElementById('fnxSeoToggle');
+
+    // helper status (unchanged behavior from original — sets a status card message)
+    function setStatus(el, msg, type) {
+        el.style.display = 'flex';
+        el.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle')}"></i> <span>${msg}</span>`;
+        el.className = `status-card ${type}`;
+    }
+
+    function updateProgress(percent, text) {
+        progressBar.style.display = 'block';
+        progressFill.style.width = percent + '%';
+        if (text) setStatus(uploadStatusDiv, text, 'info');
+        if (percent >= 100) setTimeout(() => progressBar.style.display = 'none', 1200);
+    }
+
+    // -------- Terminal log (signature UI element) --------
+    function termLine(kind, text, bright) {
+        const prefixMap = { ok: '✓', err: '✗', warn: '!', info: '→' };
+        const cls = kind === 'ok' ? 'ok' : (kind === 'err' ? 'err' : (kind === 'warn' ? 'warn' : ''));
+        const empty = terminal.querySelector('.term-empty');
+        if (empty) empty.remove();
+        const line = document.createElement('div');
+        line.className = 'term-line';
+        line.innerHTML = `<span class="term-prefix ${cls}">${prefixMap[kind] || '→'}</span><span class="term-text ${bright ? 'bright' : ''}">${text}</span>`;
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function termClear() {
+        terminal.innerHTML = '';
+    }
+
+    // GitHub Pages enable with retry
+    async function enablePages(token, owner, repo, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pages`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: { branch: 'main', path: '/' } })
+                });
+                if (res.status === 201 || res.status === 204 || res.status === 409) return true;
+                await new Promise(r => setTimeout(r, 1200));
+            } catch(e) {}
+        }
+        return false;
+    }
+
+    async function waitPagesReady(owner, repo, maxAttempts = 10) {
+        const url = `https://${owner}.github.io/${repo}/`;
+        for (let i = 0; i < maxAttempts; i++) {
+            try {
+                await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+                return true;
+            } catch(e) {}
+            await new Promise(r => setTimeout(r, 1800));
+        }
+        return false;
+    }
+
+    // AUTO SETUP
+    setupBtn.addEventListener('click', async () => {
+        const token = tokenInp.value.trim();
+        const repoName = repoInp.value.trim();
+        if (!token || !repoName) {
+            setStatus(setupStatus, 'Token & repo name required.', 'error');
+            return;
+        }
+        setStatus(setupStatus, 'Authenticating & creating environment...', 'info');
+        setupBtn.disabled = true;
+        setupBtn.innerHTML = '<div class="loader-dots"><span></span><span></span><span></span></div> Setting up...';
+
+        try {
+            const userRes = await fetch('https://api.github.com/user', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!userRes.ok) throw new Error('Invalid token (need repo scope)');
+            const user = await userRes.json();
+            const username = user.login;
+
+            const checkRepo = await fetch(`https://api.github.com/repos/${username}/${repoName}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (checkRepo.status === 404) {
+                const create = await fetch('https://api.github.com/user/repos', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: repoName, private: false, auto_init: true })
+                });
+                if (!create.ok) throw new Error('Repo creation failed');
+                setStatus(setupStatus, `Repo "${repoName}" created.`, 'success');
+            } else {
+                setStatus(setupStatus, `Repo already exists — reusing it.`, 'success');
+            }
+
+            setStatus(setupStatus, 'Enabling GitHub Pages...', 'info');
+            await enablePages(token, username, repoName);
+            setStatus(setupStatus, 'Waiting for Pages propagation...', 'info');
+            await waitPagesReady(username, repoName);
+
+            fnxConfig = { token, username, repoName };
+            localStorage.setItem('fnx_host_config', JSON.stringify(fnxConfig));
+            setStatus(setupStatus, `Ready — ${username}/${repoName} is prepared.`, 'success');
+            const previewUrl = `https://${username}.github.io/${repoName}/`;
+            setupStatus.innerHTML += `<div style="margin-top:6px; font-family: var(--font-mono);"><i class="fas fa-link"></i> <a href="${previewUrl}" target="_blank">${previewUrl}</a></div>`;
+        } catch(err) {
+            setStatus(setupStatus, `Setup failed: ${err.message}`, 'error');
+        } finally {
+            setupBtn.disabled = false;
+            setupBtn.innerHTML = '<i class="fas fa-plug"></i> Auto init & prepare';
+        }
+    });
+
+    // file upload handlers
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-over'); });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+        if (!file.name.match(/\.(html|htm)$/i)) {
+            setStatus(uploadStatusDiv, 'Only HTML files allowed.', 'error');
+            return;
+        }
+        selectedFile = file;
+        setStatus(uploadStatusDiv, `${file.name} (${(file.size/1024).toFixed(1)} KB) ready.`, 'success');
+    }
+
+    // -------- SEO injection (new): makes the deployed page indexable --------
+    // Only adds tags if missing — never removes or alters existing user content.
+    function injectSeoTags(html, repoName) {
+        try {
+            const hasHead = /<head[^>]*>/i.test(html);
+            if (!hasHead) return html; // don't reshape files without a <head>, leave as-is
+
+            const titleText = repoName.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const desc = `${titleText} — a static site hosted with FreeX HoST.`;
+            let inject = '';
+
+            if (!/<title[^>]*>/i.test(html)) {
+                inject += `\n    <title>${titleText}</title>`;
+            }
+            if (!/<meta[^>]+name=["']description["']/i.test(html)) {
+                inject += `\n    <meta name="description" content="${desc}">`;
+            }
+            if (!/<meta[^>]+name=["']robots["']/i.test(html)) {
+                inject += `\n    <meta name="robots" content="index, follow">`;
+            }
+            if (!/<meta[^>]+property=["']og:title["']/i.test(html)) {
+                inject += `\n    <meta property="og:title" content="${titleText}">`;
+                inject += `\n    <meta property="og:description" content="${desc}">`;
+                inject += `\n    <meta property="og:type" content="website">`;
+            }
+            if (!/<meta[^>]+name=["']viewport["']/i.test(html)) {
+                inject += `\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">`;
+            }
+
+            if (!inject) return html;
+            return html.replace(/<head([^>]*)>/i, `<head$1>${inject}`);
+        } catch (e) {
+            return html; // fail safe — never block a deploy over SEO injection
+        }
+    }
+
+    // -------- Deploy history (new, localStorage-backed) --------
+    const HISTORY_KEY = 'fnx_deploy_history';
+
+    function getHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        } catch(e) { return []; }
+    }
+
+    function saveHistoryEntry(entry) {
+        const list = getHistory();
+        list.unshift(entry);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 50)));
+        renderHistory();
+    }
+
+    function clearHistory() {
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory();
+    }
+
+    function formatWhen(ts) {
+        const diff = Date.now() - ts;
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        if (days < 7) return `${days}d ago`;
+        return new Date(ts).toLocaleDateString();
+    }
+
+    function renderHistory() {
+        const list = getHistory();
+        const countEl = document.getElementById('fxHistoryCount');
+        const listEl = document.getElementById('fxHistoryList');
+        countEl.textContent = list.length;
+
+        if (!list.length) {
+            listEl.innerHTML = `<div class="history-empty"><i class="fas fa-inbox"></i>Nothing deployed yet. Your hosted sites will show up here.</div>`;
+            return;
+        }
+
+        listEl.innerHTML = list.map((item, idx) => `
+            <div class="history-item">
+                <div class="history-icon"><i class="fas fa-globe"></i></div>
+                <div class="history-info">
+                    <div class="history-repo">${item.repoName}</div>
+                    <div class="history-meta">
+                        <span>${item.fileName}</span>
+                        <span>·</span>
+                        <span>${formatWhen(item.ts)}</span>
+                    </div>
+                </div>
+                <div class="history-actions">
+                    <button class="icon-btn" title="Open live site" onclick="window.open('${item.liveUrl}', '_blank')"><i class="fas fa-arrow-up-right-from-square"></i></button>
+                    <button class="icon-btn" title="Copy URL" onclick="copyHistoryUrl('${item.liveUrl}')"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function copyHistoryUrl(url) {
+        navigator.clipboard.writeText(url);
+        showToast('URL copied to clipboard');
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('fxToast');
+        document.getElementById('fxToastMsg').textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // History drawer open/close
+    const drawer = document.getElementById('fxDrawer');
+    const drawerBackdrop = document.getElementById('fxDrawerBackdrop');
+    function openDrawer() { drawer.classList.add('show'); drawerBackdrop.classList.add('show'); }
+    function closeDrawer() { drawer.classList.remove('show'); drawerBackdrop.classList.remove('show'); }
+    document.getElementById('fxHistoryToggle').addEventListener('click', openDrawer);
+    document.getElementById('fxDrawerClose').addEventListener('click', closeDrawer);
+    drawerBackdrop.addEventListener('click', closeDrawer);
+    document.getElementById('fxClearHistory').addEventListener('click', () => {
+        clearHistory();
+        showToast('History cleared');
+    });
+
+    // Deploy
+    deployBtn.addEventListener('click', async () => {
+        const saved = localStorage.getItem('fnx_host_config');
+        if (!saved) {
+            setStatus(uploadStatusDiv, 'First run GitHub auto setup (token + repo).', 'error');
+            return;
+        }
+        const cfg = JSON.parse(saved);
+        if (!selectedFile) {
+            setStatus(uploadStatusDiv, 'Select an HTML file first.', 'error');
+            return;
+        }
+
+        deployBtn.disabled = true;
+        deployBtn.innerHTML = '<div class="loader-dots"><span></span><span></span><span></span></div> Deploying...';
+        deployPanelSub.textContent = 'running';
+        termClear();
+        termLine('info', 'reading local file…');
+        updateProgress(15, 'Reading file...');
+
+        try {
+            let content = await readFile(selectedFile);
+            termLine('ok', `read ${selectedFile.name}`, true);
+
+            if (seoToggle.checked) {
+                const before = content;
+                content = injectSeoTags(content, cfg.repoName);
+                if (content !== before) {
+                    termLine('ok', 'injected SEO meta tags (title, description, robots, OG)');
+                } else {
+                    termLine('info', 'SEO tags already present — skipped injection');
+                }
+            }
+
+            termLine('info', `authenticating as ${cfg.username}…`);
+            updateProgress(45, 'Uploading to GitHub...');
+            const base64 = btoa(unescape(encodeURIComponent(content)));
+            const path = 'index.html';
+
+            const resp = await fetch(`https://api.github.com/repos/${cfg.username}/${cfg.repoName}/contents/${path}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${cfg.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `Deploy via FreeX HoST: ${selectedFile.name}`,
+                    content: base64,
+                    branch: 'main'
+                })
+            });
+            if (!resp.ok) {
+                const errJson = await resp.json();
+                throw new Error(errJson.message || 'Upload fail');
+            }
+            termLine('ok', 'pushed to main branch', true);
+            updateProgress(100, 'Successfully hosted!');
+            const liveUrl = `https://${cfg.username}.github.io/${cfg.repoName}/`;
+            const rawUrl = `https://raw.githubusercontent.com/${cfg.username}/${cfg.repoName}/main/index.html`;
+            termLine('ok', `live at <a href="${liveUrl}" target="_blank">${liveUrl}</a>`, true);
+            deployPanelSub.textContent = 'live';
+
+            linksDiv.innerHTML = `
+                <div class="preview-box" style="margin-top:14px;">
+                    <div class="link-row">
+                        <div>
+                            <div style="font-size:0.7rem; color:var(--text-faint); margin-bottom:2px;">LIVE URL</div>
+                            <a href="${liveUrl}" target="_blank" class="link-url">${liveUrl}</a>
+                        </div>
+                        <button id="copyLiveBtn" class="icon-btn" title="Copy URL"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="link-row" style="border-top:1px solid var(--border);">
+                        <div>
+                            <div style="font-size:0.7rem; color:var(--text-faint); margin-bottom:2px;">RAW FILE</div>
+                            <a href="${rawUrl}" target="_blank" class="link-url">${rawUrl}</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('copyLiveBtn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(liveUrl);
+                showToast('Live URL copied');
+            });
+
+            previewDiv.innerHTML = `
+                <div class="preview-box">
+                    <iframe src="${liveUrl}" title="live preview"></iframe>
+                </div>
+            `;
+            setStatus(uploadStatusDiv, 'Deployment complete — site is live.', 'success');
+
+            // record to history
+            saveHistoryEntry({
+                repoName: cfg.repoName,
+                username: cfg.username,
+                fileName: selectedFile.name,
+                liveUrl,
+                rawUrl,
+                ts: Date.now()
+            });
+        } catch (err) {
+            termLine('err', err.message);
+            deployPanelSub.textContent = 'failed';
+            setStatus(uploadStatusDiv, `Deploy error: ${err.message}`, 'error');
+        } finally {
+            deployBtn.disabled = false;
+            deployBtn.innerHTML = '<i class="fab fa-github"></i> Deploy & go live';
+        }
+    });
+
+    function readFile(file) {
+        return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result);
+            reader.onerror = () => rej(new Error('File read failed'));
+            reader.readAsText(file);
+        });
+    }
+
+    // live clock
+    function updateClock() {
+        const d = new Date();
+        document.getElementById('timeDisplay').innerText = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // load prev config if exists
+    const stored = localStorage.getItem('fnx_host_config');
+    if (stored) {
+        try {
+            const prev = JSON.parse(stored);
+            tokenInp.value = prev.token || '';
+            repoInp.value = prev.repoName || '';
+            fnxConfig = prev;
+            setStatus(setupStatus, `Previous config loaded: ${prev.username}/${prev.repoName}`, 'success');
+        } catch(e) {}
+    } else {
+        setStatus(setupStatus, 'Enter token + any repo name — one click sets everything up.', 'info');
+    }
+
+    // initial history render
+    renderHistory();
+</script>
+
+<style>
+    /* Loader animation (kept from original, unchanged) */
+    .loader-dots {
+        display: inline-flex;
+        gap: 4px;
+    }
+    .loader-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: bounce 1.4s infinite;
+    }
+    .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+</style>
+</body>
+</html>
